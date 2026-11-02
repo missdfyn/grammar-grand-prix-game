@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grammar Grand Prix</title>
+<!-- Tailwind CSS for modern utility styling -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Tone.js for web audio sound effects -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<!-- Phosphor Icons for UI accents -->
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800;900&display=swap');
+
+  :root {
+    --navy: #0f172a;
+    --blue: #2563eb;
+    --orange: #f97316;
+    --amber: #f59e0b;
+    --cream: #f8fafc;
+    --green: #10b981;
+    --red: #ef4444;
+  }
+
+  * {
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+  }
+
+  .font-fredoka {
+    font-family: 'Fredoka', cursive, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #f8fafc;
+    min-height: 100vh;
+  }
+
+  /* Custom Animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+
+  @keyframes bounce-car {
+    0% { transform: scaleX(-1) translateY(0); }
+    100% { transform: scaleX(-1) translateY(-6px); }
+  }
+
+  @keyframes exhaust-smoke {
+    0% { opacity: 0.8; transform: scale(0.5) translate(0, 0); }
+    100% { opacity: 0; transform: scale(1.8) translate(-30px, -15px); }
+  }
+
+  @keyframes pulse-ring {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(249, 115, 22, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+  }
+
+  .car.moving {
+    animation: bounce-car 0.2s infinite alternate;
+  }
+
+  .exhaust-particle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #cbd5e1;
+    border-radius: 50%;
+    animation: exhaust-smoke 0.6s linear forwards;
+    pointer-events: none;
+  }
+
+  .pulse-btn {
+    animation: pulse-ring 2s infinite;
+  }
+
+  .perspective-track {
+    perspective: 600px;
+  }
+
+  .road-3d {
+    transform: perspective(280px) rotateX(25deg);
+    transform-origin: bottom center;
+  }
+
+  /* Track Dashboard Shadow */
+  .glow-box {
+    box-shadow: 0 10px 30px -5px rgba(37, 99, 235, 0.3);
+  }
+
+  .answer-btn {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .answer-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px -4px rgba(249, 115, 22, 0.4);
+  }
+</style>
+</head>
+<body class="flex flex-col min-h-screen text-slate-100">
+
+<!-- Header Navigation -->
+<header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 px-4 py-3 sm:px-8 flex items-center justify-between shadow-lg">
+  <div class="flex items-center space-x-3">
+    <div class="bg-gradient-to-tr from-amber-500 to-orange-500 p-2.5 rounded-xl shadow-md text-slate-900 flex items-center justify-center">
+      <i class="ph-bold ph-flag-checkered text-2xl"></i>
+    </div>
+    <div>
+      <h1 class="text-xl sm:text-2xl font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200 font-fredoka">
+        GRAMMAR GRAND PRIX
+      </h1>
+      <p class="text-xs text-slate-400 font-semibold tracking-wide">PRIMARY 4 ENGLISH CHAMPIONSHIP</p>
+    </div>
+  </div>
+
+  <div class="flex items-center space-x-3">
+    <!-- Sound Toggle -->
+    <button id="soundToggleBtn" onclick="toggleSound()" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition flex items-center space-x-1 border border-slate-700" title="Toggle Sound Effects">
+      <i id="soundIcon" class="ph-bold ph-speaker-high text-xl text-amber-400"></i>
+    </button>
+    
+    <div class="hidden sm:flex items-center space-x-1 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl text-amber-300 font-bold text-xs">
+      <i class="ph-fill ph-trophy text-amber-400 text-base"></i>
+      <span id="headerScore">0 PTS</span>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
+
+  <!-- HOME SCREEN -->
+  <section id="home" class="bg-slate-800/80 backdrop-blur-md rounded-3xl p-6 sm:p-8 border border-slate-700 shadow-2xl text-center space-y-6">
+    <div class="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-8 border border-indigo-500/30 shadow-inner">
+      <div class="absolute -top-10 -right-10 w-40 h-40 bg-orange-500/10 rounded-full blur-3xl"></div>
+      <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl"></div>
+      
+      <div class="relative z-10 space-y-4">
+        <div class="inline-flex items-center justify-center p-4 bg-slate-800/80 rounded-2xl border border-slate-700 shadow-xl space-x-2 text-4xl sm:text-5xl">
+          <span>🏎️</span>
+          <span class="text-amber-400 font-bold">🏁</span>
+        </div>
+        <h1 class="text-3xl sm:text-5xl font-black tracking-tight text-white font-fredoka">
+          RACE TO GRAMMAR VICTORY!
+        </h1>
+        <p class="text-slate-300 max-w-lg mx-auto text-sm sm:text-base leading-relaxed">
+          Answer grammar questions, speed through checkpoints, and unlock new racing levels to become the Grand Prix Champion!
+        </p>
+        <div class="pt-2">
+          <button onclick="show('menu')" class="pulse-btn bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-slate-950 font-black px-8 py-4 rounded-2xl text-lg shadow-lg hover:shadow-orange-500/30 transition transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center space-x-2 mx-auto">
+            <span>START YOUR ENGINE</span>
+            <i class="ph-bold ph-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h2 class="text-xl font-bold text-slate-200 flex items-center justify-center space-x-2 mb-1">
+        <i class="ph-bold ph-flag text-amber-400"></i>
+        <span>CHOOSE YOUR RACING LEVEL</span>
+      </h2>
+      <p class="text-xs text-slate-400 mb-6">Score at least 4/5 checkpoints to qualify for the next track.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Level 1 -->
+        <div class="bg-slate-900/90 border-2 border-amber-500/40 rounded-2xl p-5 text-left flex flex-col justify-between space-y-4 transition hover:border-amber-400">
+          <div>
+            <div class="text-3xl mb-2">🚗</div>
+            <span class="text-xs font-bold text-amber-400 uppercase tracking-widest">Level 1 · Beginner</span>
+            <h3 class="text-lg font-extrabold text-white">Rookie Racer</h3>
+            <p class="text-xs text-slate-400 mt-1">Present Simple tense basics and daily routines.</p>
+          </div>
+          <button onclick="startLevel(0)" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-3 rounded-xl transition text-sm">
+            RACE NOW
+          </button>
+        </div>
+
+        <!-- Level 2 -->
+        <div id="levelCard1" class="bg-slate-900/50 border-2 border-slate-700/60 rounded-2xl p-5 text-left flex flex-col justify-between space-y-4 opacity-60">
+          <div>
+            <div id="levelIcon1" class="text-3xl mb-2">🔒</div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Level 2 · Intermediate</span>
+            <h3 class="text-lg font-extrabold text-white">Speed Racer</h3>
+            <p class="text-xs text-slate-400 mt-1">Subject-Verb Agreement with singular & plural nouns.</p>
+          </div>
+          <button id="levelBtn1" disabled onclick="startLevel(1)" class="w-full bg-slate-800 text-slate-400 font-extrabold py-3 rounded-xl cursor-not-allowed transition text-sm">
+            LOCKED
+          </button>
+        </div>
+
+        <!-- Level 3 -->
+        <div id="levelCard2" class="bg-slate-900/50 border-2 border-slate-700/60 rounded-2xl p-5 text-left flex flex-col justify-between space-y-4 opacity-60">
+          <div>
+            <div id="levelIcon2" class="text-3xl mb-2">🔒</div>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Level 3 · Advanced</span>
+            <h3 class="text-lg font-extrabold text-white">Grammar Champion</h3>
+            <p class="text-xs text-slate-400 mt-1">Spot the mistakes and master advanced grammar rules.</p>
+          </div>
+          <button id="levelBtn2" disabled onclick="startLevel(2)" class="w-full bg-slate-800 text-slate-400 font-extrabold py-3 rounded-xl cursor-not-allowed transition text-sm">
+            LOCKED
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW TO PLAY SCREEN -->
+  <section id="menu" class="hidden bg-slate-800/80 backdrop-blur-md rounded-3xl p-6 sm:p-8 border border-slate-700 shadow-2xl space-y-6">
+    <div class="text-center space-y-2">
+      <div class="inline-block p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20 text-3xl mb-2">🏎️</div>
+      <h1 class="text-3xl font-black text-white font-fredoka">READY, RACER?</h1>
+      <p class="text-slate-300 text-sm">Review your driver's guide before heading to the starting grid!</p>
+    </div>
+
+    <div class="bg-slate-900/80 rounded-2xl p-6 border border-slate-700/80 space-y-4 max-w-md mx-auto text-left">
+      <h3 class="text-amber-400 font-bold text-sm tracking-wider uppercase border-b border-slate-800 pb-2 flex items-center space-x-2">
+        <i class="ph-bold ph-list-numbers text-lg"></i>
+        <span>Race Rules</span>
+      </h3>
+      <ul class="space-y-3 text-sm text-slate-300">
+        <li class="flex items-start space-x-3">
+          <span class="bg-amber-500/20 text-amber-400 font-bold rounded-full w-6 h-6 flex items-center justify-center shrink-0 text-xs mt-0.5">1</span>
+          <span>Read the grammar prompt carefully at each checkpoint.</span>
+        </li>
+        <li class="flex items-start space-x-3">
+          <span class="bg-amber-500/20 text-amber-400 font-bold rounded-full w-6 h-6 flex items-center justify-center shrink-0 text-xs mt-0.5">2</span>
+          <span>Select the correct answer choice.</span>
+        </li>
+        <li class="flex items-start space-x-3">
+          <span class="bg-amber-500/20 text-amber-400 font-bold rounded-full w-6 h-6 flex items-center justify-center shrink-0 text-xs mt-0.5">3</span>
+          <span>Correct answer? Your race car accelerates down the track!</span>
+        </li>
+        <li class="flex items-start space-x-3">
+          <span class="bg-amber-500/20 text-amber-400 font-bold rounded-full w-6 h-6 flex items-center justify-center shrink-0 text-xs mt-0.5">4</span>
+          <span>Score at least 4 out of 5 points to pass and unlock the next track.</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+      <button onclick="startLevel(0)" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-8 py-3.5 rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
+        <span>LET'S RACE!</span>
+        <i class="ph-bold ph-flag-checkered"></i>
+      </button>
+      <button onclick="show('home')" class="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold px-6 py-3.5 rounded-xl transition">
+        BACK TO MAIN MENU
+      </button>
+    </div>
+  </section>
+
+  <!-- RACE SCREEN -->
+  <section id="raceScreen" class="hidden bg-slate-800/80 backdrop-blur-md rounded-3xl p-4 sm:p-6 border border-slate-700 shadow-2xl space-y-4">
+    <!-- Header Stats Bar -->
+    <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-900/90 px-4 py-3 rounded-2xl border border-slate-700 font-bold text-xs sm:text-sm">
+      <span id="levelLabel" class="text-amber-400 tracking-wider">ROOKIE RACER</span>
+      <span id="scoreLabel" class="text-emerald-400 flex items-center space-x-1">
+        <i class="ph-fill ph-star"></i>
+        <span>⭐ 0 points</span>
+      </span>
+      <span id="checkpointLabel" class="text-slate-300">CHECKPOINT 1/5</span>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden p-0.5 border border-slate-700">
+      <div id="progressFill" class="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500 w-0"></div>
+    </div>
+
+    <!-- Visual Racetrack Canvas Container -->
+    <div class="relative h-48 sm:h-64 rounded-2xl overflow-hidden border-2 border-slate-700 bg-gradient-to-b from-sky-400 via-sky-200 to-emerald-600 shadow-inner">
+      <!-- Sky & Environment -->
+      <div class="absolute right-8 top-4 w-10 h-10 bg-amber-200 rounded-full shadow-[0_0_25px_#fde047]"></div>
+      <div class="absolute top-6 left-12 text-3xl opacity-80" style="animation: float 4s ease-in-out infinite;">☁️</div>
+      <div class="absolute top-8 right-32 text-2xl opacity-70" style="animation: float 5s ease-in-out infinite 1s;">☁️</div>
+
+      <!-- Grandstand Background -->
+      <div class="absolute top-20 left-0 right-0 h-8 bg-repeat-x opacity-90" style="background-image: repeating-linear-gradient(90deg, #e2e8f0 0 15px, #f97316 15px 30px);"></div>
+      <div class="absolute top-28 left-0 right-0 h-4 bg-emerald-700"></div>
+
+      <!-- 3D Road Perspective -->
+      <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-11/12 h-32 bg-slate-800 border-t-4 border-slate-100 road-3d rounded-t-3xl overflow-hidden">
+        <!-- Dashed Center Lane Line -->
+        <div class="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 border-r-4 border-dashed border-yellow-400 w-0"></div>
+      </div>
+
+      <!-- Checkpoint Flag Indicator -->
+      <div id="checkpoint" class="absolute bottom-16 left-1/2 -translate-x-1/2 text-2xl sm:text-3xl z-10 transition-transform duration-300">🚩 1</div>
+
+      <!-- Finish Line -->
+      <div class="absolute top-24 right-6 text-2xl sm:text-3xl z-10 font-bold text-white drop-shadow">🏁 FINISH</div>
+
+      <!-- Car Container -->
+      <div id="car" class="car absolute bottom-4 left-[10%] text-4xl sm:text-6xl z-20 transition-all duration-700 ease-out filter drop-shadow-lg" style="transform: scaleX(-1);">
+        🏎️
+      </div>
+    </div>
+
+    <!-- Question Container -->
+    <div class="bg-slate-900/90 rounded-2xl p-5 sm:p-6 border border-slate-700/80 space-y-4">
+      <div>
+        <span id="questionType" class="text-xs font-black text-amber-400 tracking-widest uppercase">GRAMMAR CHECKPOINT</span>
+        <h2 id="question" class="text-lg sm:text-2xl font-black text-white mt-1 leading-snug font-fredoka">
+          Question goes here
+        </h2>
+      </div>
+
+      <!-- Answer Options Grid -->
+      <div id="answers" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <!-- Dynamic Answer Buttons Inserted Here -->
+      </div>
+
+      <!-- Feedback Banner -->
+      <div id="feedback" aria-live="polite" class="p-3 sm:p-4 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold text-slate-300 min-h-[52px] flex items-center">
+        Choose the correct answer to accelerate!
+      </div>
+
+      <!-- Action Footer -->
+      <div class="flex items-center justify-between gap-3 pt-2">
+        <button onclick="confirmQuit()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs sm:text-sm transition border border-slate-700">
+          EXIT RACE
+        </button>
+        <button id="nextBtn" onclick="nextQuestion()" class="hidden bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black px-6 py-2.5 rounded-xl text-xs sm:text-sm transition shadow-md">
+          NEXT CHECKPOINT →
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULT SCREEN -->
+  <section id="result" class="hidden bg-slate-800/80 backdrop-blur-md rounded-3xl p-6 sm:p-8 border border-slate-700 shadow-2xl text-center space-y-6">
+    <div class="space-y-2">
+      <div id="resultIcon" class="text-6xl sm:text-7xl mb-2">🏆</div>
+      <h1 id="resultTitle" class="text-3xl sm:text-4xl font-black text-white font-fredoka">RACE COMPLETE!</h1>
+      <div id="resultScore" class="text-4xl font-black text-amber-400">5/5</div>
+      <h2 id="resultSubtitle" class="text-lg font-bold text-slate-200">Amazing racing!</h2>
+      <p id="resultText" class="text-sm text-slate-300 max-w-md mx-auto leading-relaxed"></p>
+    </div>
+
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+      <button onclick="retry()" class="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 text-white font-bold px-6 py-3 rounded-xl transition text-sm">
+        RACE AGAIN
+      </button>
+      <button id="nextLevelBtn" onclick="goNextLevel()" class="hidden w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-6 py-3 rounded-xl transition text-sm shadow-lg">
+        NEXT LEVEL →
+      </button>
+      <button onclick="show('home'); updateMenu()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-6 py-3 rounded-xl transition text-sm border border-slate-700">
+        LEVEL MENU
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<!-- Custom Quit Confirmation Modal ( Replaces alert/confirm ) -->
+<div id="quitModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full space-y-4 text-center shadow-2xl">
+    <div class="text-4xl">⚠️</div>
+    <h3 class="text-xl font-black text-white font-fredoka">LEAVE THE RACE?</h3>
+    <p class="text-xs text-slate-300 leading-relaxed">
+      Are you sure you want to abandon your current lap? Your progress for this race will be lost.
+    </p>
+    <div class="flex items-center justify-center gap-3 pt-2">
+      <button onclick="closeQuitModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition">
+        KEEP RACING
+      </button>
+      <button onclick="executeQuit()" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl text-xs transition">
+        EXIT RACE
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Race Data Structure
+const races = [
+  {
+    name: "ROOKIE RACER",
+    type: "PRESENT SIMPLE · BEGINNER",
+    questions: [
+      { q: "Adam _____ football every Monday.", a: ["play", "plays", "playing", "played"], c: 1, h: "Adam is one person (singular). Add -s to the verb: plays." },
+      { q: "They _____ badminton after school.", a: ["plays", "play", "playing", "played"], c: 1, h: "Use the base form 'play' with 'they'." },
+      { q: "Sarah _____ swimming every Saturday.", a: ["go", "goes", "going", "gone"], c: 1, h: "Use 'goes' for singular subjects like Sarah." },
+      { q: "I _____ cycling in the evening.", a: ["enjoys", "enjoy", "enjoying", "enjoyed"], c: 1, h: "Use 'enjoy' with the pronoun 'I'." },
+      { q: "He _____ jogging every morning.", a: ["like", "likes", "liking", "liked"], c: 1, h: "Use 'likes' with 'he'." }
+    ]
+  },
+  {
+    name: "SPEED RACER",
+    type: "SUBJECT-VERB AGREEMENT · INTERMEDIATE",
+    questions: [
+      { q: "My brother _____ basketball every weekend.", a: ["play", "plays", "playing", "are play"], c: 1, h: "'My brother' is singular. Use 'plays'." },
+      { q: "The pupils _____ in the park.", a: ["runs", "running", "run", "is run"], c: 2, h: "'Pupils' is a plural noun. Use 'run'." },
+      { q: "She _____ her bicycle to the park.", a: ["ride", "rides", "riding", "are ride"], c: 1, h: "Use 'rides' with 'she'." },
+      { q: "We _____ exercise every evening.", a: ["does", "doing", "do", "does doing"], c: 2, h: "Use 'do' with the subject 'we'." },
+      { q: "My friends _____ swimming on Fridays.", a: ["goes", "going", "go", "is going"], c: 2, h: "'Friends' is plural. Use 'go'." }
+    ]
+  },
+  {
+    name: "GRAMMAR CHAMPION",
+    type: "FIND THE MISTAKE · ADVANCED",
+    questions: [
+      { q: "Which sentence is grammatically correct?", a: ["He play football.", "He plays football.", "He playing football.", "He are play football."], c: 1, h: "With 'he', add -s to the verb: plays." },
+      { q: "Correct this sentence: 'They plays badminton.'", a: ["They playing badminton.", "They play badminton.", "They plays badminton.", "They is play badminton."], c: 1, h: "Use the base verb 'play' with 'they'." },
+      { q: "Which sentence contains a grammar mistake?", a: ["I swim every week.", "She runs every morning.", "They plays basketball.", "We ride bicycles."], c: 2, h: "'They plays' is incorrect. It should be 'They play'." },
+      { q: "Correct this sentence: 'Sarah go cycling on Sundays.'", a: ["Sarah goes cycling on Sundays.", "Sarah going cycling on Sundays.", "Sarah go cycling on Sundays.", "Sarah are go cycling on Sundays."], c: 0, h: "Sarah is singular. Use 'goes'." },
+      { q: "Choose the correct sentence.", a: ["My friends likes swimming.", "My friends like swimming.", "My friends liking swimming.", "My friends is like swimming."], c: 1, h: "Use 'like' with plural subjects like 'my friends'." }
+    ]
+  }
+];
+
+// Game State Variables
+let level = 0;
+let index = 0;
+let score = 0;
+let unlocked = 0;
+let passed = [false, false, false];
+let answered = false;
+let soundEnabled = true;
+
+// Tone.js Sound Synthesizers Setup
+let synth, polySynth;
+
+function initAudio() {
+  if (!synth && typeof Tone !== 'undefined') {
+    synth = new Tone.Synth().toDestination();
+    polySynth = new Tone.PolySynth().toDestination();
+  }
+}
+
+function playSound(type) {
+  if (!soundEnabled) return;
+  try {
+    initAudio();
+    if (Tone.context.state !== 'running') {
+      Tone.start();
+    }
+    
+    if (type === 'correct') {
+      const now = Tone.now();
+      polySynth.triggerAttackRelease(["C5", "E5", "G5"], "8n", now);
+    } else if (type === 'wrong') {
+      const now = Tone.now();
+      synth.triggerAttackRelease("A3", "8n", now);
+    } else if (type === 'rev') {
+      const now = Tone.now();
+      synth.triggerAttackRelease("G2", "16n", now);
+    } else if (type === 'win') {
+      const now = Tone.now();
+      polySynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "4n", now);
+    }
+  } catch (e) {
+    // Audio context fallback
+  }
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const icon = document.getElementById("soundIcon");
+  if (soundEnabled) {
+    icon.className = "ph-bold ph-speaker-high text-xl text-amber-400";
+  } else {
+    icon.className = "ph-bold ph-speaker-slash text-xl text-slate-500";
+  }
+}
+
+// UI Navigation Controller
+function show(id) {
+  ["home", "menu", "raceScreen", "result"].forEach(x => {
+    document.getElementById(x).classList.add("hidden");
+  });
+  document.getElementById(id).classList.remove("hidden");
+}
+
+// Level Cards Manager
+function updateMenu() {
+  let totalScore = passed.filter(Boolean).length * 5;
+  document.getElementById("headerScore").textContent = totalScore + " PTS";
+
+  for (let i = 1; i < 3; i++) {
+    let card = document.getElementById("levelCard" + i);
+    let btn = document.getElementById("levelBtn" + i);
+    let icon = document.getElementById("levelIcon" + i);
+
+    if (i <= unlocked) {
+      card.classList.remove("opacity-60");
+      card.classList.add("border-amber-500/40");
+      icon.textContent = passed[i] ? "🏅" : "🏎️";
+      btn.disabled = false;
+      btn.textContent = passed[i] ? "RACE AGAIN" : "RACE NOW";
+      btn.className = "w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-3 rounded-xl transition text-sm cursor-pointer";
+    }
+  }
+}
+
+// Start Level Session
+function startLevel(n) {
+  if (n > unlocked) return;
+  level = n;
+  index = 0;
+  score = 0;
+  show("raceScreen");
+  renderQuestion();
+  playSound('rev');
+}
+
+// Exhaust Particle VFX Effect
+function spawnExhaust() {
+  const car = document.getElementById("car");
+  const particle = document.createElement("div");
+  particle.className = "exhaust-particle";
+  particle.style.bottom = "12px";
+  particle.style.left = "-10px";
+  car.appendChild(particle);
+  setTimeout(() => particle.remove(), 600);
+}
+
+// Question Renderer
+function renderQuestion() {
+  answered = false;
+  const data = races[level];
+  const q = data.questions[index];
+
+  document.getElementById("levelLabel").textContent = data.name;
+  document.getElementById("questionType").textContent = data.type;
+  document.getElementById("checkpointLabel").textContent = "CHECKPOINT " + (index + 1) + "/5";
+  document.getElementById("scoreLabel").innerHTML = `<i class="ph-fill ph-star"></i> <span>⭐ ${score} points</span>`;
+  document.getElementById("question").textContent = q.q;
+
+  // Track Progress
+  document.getElementById("progressFill").style.width = (index / 5 * 100) + "%";
+  document.getElementById("checkpoint").textContent = "🚩 " + (index + 1);
+
+  // Feedback State Reset
+  const feedback = document.getElementById("feedback");
+  feedback.textContent = "Choose the correct answer to accelerate!";
+  feedback.className = "p-3 sm:p-4 rounded-xl bg-slate-800 border border-slate-700 text-xs sm:text-sm font-bold text-slate-300 min-h-[52px] flex items-center";
+
+  document.getElementById("nextBtn").classList.add("hidden");
+
+  // Car Position Calculations
+  const car = document.getElementById("car");
+  car.style.left = (10 + index * 16) + "%";
+  car.classList.remove("moving");
+
+  // Options Grid Setup
+  const box = document.getElementById("answers");
+  box.innerHTML = "";
+
+  q.a.forEach((a, i) => {
+    let b = document.createElement("button");
+    b.className = "answer-btn border-2 border-slate-700 bg-slate-800/90 hover:bg-slate-700 text-slate-100 rounded-xl p-3 sm:p-4 text-left text-xs sm:text-sm font-bold flex items-center justify-start space-x-3 text-white transition";
+    
+    let label = String.fromCharCode(65 + i);
+    b.innerHTML = `<span class="w-7 h-7 rounded-lg bg-slate-900 border border-slate-700 text-amber-400 flex items-center justify-center text-xs shrink-0 font-extrabold">${label}</span><span>${a}</span>`;
+    
+    b.onclick = () => check(i, b);
+    box.appendChild(b);
+  });
+}
+
+// Answer Validator
+function check(choice, button) {
+  if (answered) return;
+  const q = races[level].questions[index];
+  const feedback = document.getElementById("feedback");
+
+  if (choice === q.c) {
+    answered = true;
+    score++;
+    playSound('correct');
+
+    feedback.innerHTML = `<div class="flex items-center space-x-2 text-emerald-400"><i class="ph-bold ph-check-circle text-lg shrink-0"></i><span>CORRECT! ${q.h}</span></div>`;
+    feedback.className = "p-3 sm:p-4 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-xs sm:text-sm font-bold min-h-[52px] flex items-center";
+
+    button.className = "answer-btn border-2 border-emerald-500 bg-emerald-900/40 text-emerald-100 rounded-xl p-3 sm:p-4 text-left text-xs sm:text-sm font-bold flex items-center justify-start space-x-3";
+
+    // Animate Car
+    const car = document.getElementById("car");
+    car.classList.add("moving");
+    car.style.left = (22 + index * 16) + "%";
+    spawnExhaust();
+
+    document.getElementById("progressFill").style.width = ((index + 1) * 20) + "%";
+    document.getElementById("scoreLabel").innerHTML = `<i class="ph-fill ph-star"></i> <span>⭐ ${score} points</span>`;
+
+    const nextBtn = document.getElementById("nextBtn");
+    nextBtn.textContent = index === 4 ? "CROSS THE FINISH LINE! 🏁" : "NEXT CHECKPOINT →";
+    nextBtn.classList.remove("hidden");
+  } else {
+    playSound('wrong');
+    feedback.innerHTML = `<div class="flex items-center space-x-2 text-rose-400"><i class="ph-bold ph-warning-circle text-lg shrink-0"></i><span>NOT QUITE! ${q.h} Try again!</span></div>`;
+    feedback.className = "p-3 sm:p-4 rounded-xl bg-rose-950/60 border border-rose-500/50 text-xs sm:text-sm font-bold min-h-[52px] flex items-center";
+
+    button.className = "answer-btn border-2 border-rose-500 bg-rose-900/40 text-rose-100 rounded-xl p-3 sm:p-4 text-left text-xs sm:text-sm font-bold flex items-center justify-start space-x-3";
+  }
+}
+
+// Next Question Progression
+function nextQuestion() {
+  if (!answered) return;
+  if (index < 4) {
+    index++;
+    renderQuestion();
+  } else {
+    finishRace();
+  }
+}
+
+// Finish Race Summary
+function finishRace() {
+  const win = score >= 4;
+  if (win) {
+    passed[level] = true;
+    unlocked = Math.max(unlocked, Math.min(2, level + 1));
+    playSound('win');
+  }
+
+  document.getElementById("resultIcon").textContent = win ? "🏆" : "💪";
+  document.getElementById("resultTitle").textContent = win ? "RACE COMPLETE!" : "KEEP PRACTISING!";
+  document.getElementById("resultScore").textContent = score + "/5";
+  document.getElementById("resultSubtitle").textContent = win ? "YOU ARE A GRAMMAR STAR!" : "YOU CAN DO IT, RACER!";
+
+  document.getElementById("resultText").textContent = win ?
+    (level === 2 ?
+      "Incredible! You have completed all three races and become the Grammar Grand Prix Champion!" :
+      "Fantastic performance! You have qualified for the next racing level.") :
+    "You need at least 4 correct answers to unlock the next level. Practise and race again!";
+
+  document.getElementById("nextLevelBtn").classList.toggle("hidden", !win || level === 2);
+  show("result");
+}
+
+function retry() {
+  startLevel(level);
+}
+
+function goNextLevel() {
+  if (level < 2) startLevel(level + 1);
+}
+
+// Quit Confirmation Modal
+function confirmQuit() {
+  document.getElementById("quitModal").classList.remove("hidden");
+}
+
+function closeQuitModal() {
+  document.getElementById("quitModal").classList.add("hidden");
+}
+
+function executeQuit() {
+  closeQuitModal();
+  show("home");
+  updateMenu();
+}
+
+// Initialize Menu State on Load
+updateMenu();
+</script>
+</body>
+</html>
